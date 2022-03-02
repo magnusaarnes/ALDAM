@@ -26,11 +26,10 @@ def bytes_to_string(b64string):
     """
     Returns byte string as a string
     """
-    return str(b64string)
+    return b64string.decode('utf-8')
 
 def string_to_bytes(string):
     """
     Retruns the string as bytes
     """
     return bytes(string, 'utf-8')
-
