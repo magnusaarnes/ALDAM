@@ -6,7 +6,7 @@ from frame import Frame
 
 if __name__ == "__main__":
     image = cv2.imread('images/image1.png')
-    img = Frame(image, [0.0, 0.0], 25)
+    img = Frame(image, [0.0, 0.0], 25, 0.0, [0, 0, 0])
     
     img.process()
     

@@ -31,21 +31,42 @@ def process_image(image, display_steps=False):
     
     return saliency_map_image_bin_blur_bin
 
+
 class Frame:
+    instrinsic_params = np.loadtxt('config/intrinsic_params.txt')
+    dist_coeffs = np.loadtxt('config/dist_coeffs.txt')
+    width, height = np.loadtxt('config/image_dims.txt', dtype='int64')
+    new_camera_mtx, roi = cv2.getOptimalNewCameraMatrix(
+        instrinsic_params,
+        dist_coeffs,
+        (width, height),
+        1,
+        (width, height))
+    
     def __init__(self,
                  image: np.ndarray,
-                 center_coord: np.ndarray,
-                 height: float):
+                 center_coord: list[float],
+                 height_above_sea: float,
+                 timestamp: float,
+                 orientation: list[float]):
         """
-        Initialize a cameraframe with the image and the coordinate
-        representing the point where the image was taken.
+        Initialize a cameraframe and undistort image.
+        
+        Parameters:
+        - image (np.ndarray):         The image.
+        - center_coord (list[float]): Longitude and latidute of where image is taken.
+        - height_above_sea: (float):  Height above sea level of where image is taken.
+        - timestamp (float):          Unix timestamp of when image is taken.
+        - orientation (float):        Orientation of camera in terms of [roll, pitch, yaw].
         """
-        self.image = image
+        self.image = image #cv2.undistort(image, self.instrinsic_params, self.dist_coeffs, None, self.new_camera_mtx)
         self.center_coord = center_coord
-        self.height = height
+        self.height_above_sea = height_above_sea
+        self.timestamp = timestamp
+        self.orientation = orientation
     
     def process(self):
-        self.image_processed = process_image(self.image)
+        self.image_processed = process_image(self.image, display_steps=True)
         print(self.image_processed.shape)
         return self.image_processed
     
