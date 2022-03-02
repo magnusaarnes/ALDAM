@@ -1,7 +1,6 @@
 import serial
 import RPi.GPIO as GPIO
 import time
-import json
 gps_update_time = 1.5 #s
 msg_wait_time = 1 #s
 
@@ -18,7 +17,7 @@ class SIM7600X_GPS_and_4G():
         self.last_recived_serial_msg = ''
         self.last_sendt_serial_msg = ''
         self.timeout = 0.5
-
+        
     def SIM7600X_power_on(self):
         """
         powers  on the hat, flushes the serial port.
@@ -134,7 +133,7 @@ class SIM7600X_GPS_and_4G():
         serial.write(self.last_sendt_serial_msg.encode())
 
 
-    def connect_socket(self, server_ip:str, server_port:int):
+    def open_socket(self, server_ip:str, server_port:int):
         """
             sets up a TCP socket connection from the hat to a TCP server
 
@@ -163,16 +162,19 @@ class SIM7600X_GPS_and_4G():
         msg = self.__send_cmd(','.join('AT+CIPOPEN=0','TCP',server_ip,server_port),'+CIPOPEN:')
         return msg
 
-
+    def close_socket(self):
+        self.__send_cmd('AT+CIPCLOSE=0','+CIPCLOSE: 0,0')
+        a = self.__send_cmd('AT+NETCLOSE', '+NETCLOSE: 0')
+        return a
     def send_tcp_packet(self, packet:str):
-        """sends an tcp packet as a json string
 
+        """sends an tcp packet as a json string
         Args:
             packet (str): the packet to be sendt
-
         Returns:
             int: 1 if connection was successful, 0 if hat was unable to connect. -1 if hat could not be reached.
         """        
+
         self.timeout = 2
         self.__send_cmd('AT+CIPSEND=0,', '>')
         self.__write_serial(packet)
