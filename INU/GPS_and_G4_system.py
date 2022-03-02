@@ -1,6 +1,7 @@
 import serial
 import RPi.GPIO as GPIO
 import time
+import json
 gps_update_time = 1.5 #s
 msg_wait_time = 1 #s
 
@@ -182,4 +183,12 @@ class SIM7600X_GPS_and_4G():
         ans = self.__send_cmd(b'\x1a'.decode(),'OK')
         
         return ans
-        
+operator = SIM7600X_GPS_and_4G(6,3030,'CMNET')
+
+operator.SIM7600X_power_on()
+print(operator.open_socket('127.0.0.1',3031))
+gps = operator.SIM7600X_get_gps_pos()
+print(gps)
+operator.send_tcp_packet(json(gps))
+operator.close_socket()
+operator.SIM7600X_power_down()
