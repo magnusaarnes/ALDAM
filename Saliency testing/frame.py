@@ -2,7 +2,51 @@ import cv2
 from matplotlib import image
 import numpy as np
 
+
+def remove_specularity(img):
+    # convert to gray
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    
+    #GLARE_MIN = np.array([180//2, 0, 0],np.uint8)
+    #GLARE_MAX = np.array([280//2, 0, 200],np.uint8)
+    
+    #frame_threshold = cv2.inRange(hsv_img, GLARE_MIN, GLARE_MAX)
+    #print("SE HER")
+    #print(np.min(frame_threshold), np.max(frame_threshold))
+    #mask = 255 - frame_threshold
+    
+    # Reduce noise in the saturation channel
+    hsv_img[:,:,1] = cv2.blur(hsv_img[:,:,1], (35,35), 0)
+    
+    # threshold grayscale image to extract glare
+    mask = cv2.threshold(hsv_img[:,:,2], 220, 255, cv2.THRESH_BINARY)[1]
+    kernel = np.ones((5,5),np.uint8)
+    mask = cv2.dilate(mask,kernel,iterations = 1)
+
+    # Optionally add some morphology close and open, if desired
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+
+    # use mask with input to do inpainting
+    result = cv2.inpaint(img, mask, 21, cv2.INPAINT_TELEA) 
+
+    # display it
+    cv2.imshow("IMAGE", img)
+    cv2.imshow("GRAY", gray)
+    cv2.imshow("MASK", mask)
+    cv2.imshow("RESULT", result)
+    
+    return result
+
+
 def process_image(image, display_steps=False):
+    # Remove specular reflections
+    image = remove_specularity(image).copy()
+    
     saliency = cv2.saliency.StaticSaliencyFineGrained_create()
 
     # Do the saliency

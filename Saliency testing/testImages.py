@@ -5,7 +5,8 @@ from frame import Frame
     
 
 if __name__ == "__main__":
-    image = cv2.imread('images/image1.png')
+    image = cv2.imread('images/image6.png')
+    
     img = Frame(image, [0.0, 0.0], 25, 0.0, [0, 0, 0])
     
     img.process()
@@ -17,4 +18,3 @@ if __name__ == "__main__":
     plt.imshow(cv2.cvtColor(img.image, cv2.COLOR_BGR2RGB))
     plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
     plt.show()
-    
