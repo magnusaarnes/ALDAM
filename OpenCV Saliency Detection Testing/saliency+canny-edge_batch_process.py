@@ -1,3 +1,4 @@
+from audioop import avg
 import numpy as np
 import cv2
 import time
@@ -10,8 +11,8 @@ import commons
 # Image downsample scaling
 scale = 1
 # Standard image resolution
-hi = 720
-wi = 1280
+hi = 270
+wi = 480
 downsize = True
 con_hi = 1600
 con_wi = 2560
@@ -73,14 +74,31 @@ for i in range(0,len(images)):
     drawn_im = images[i].copy()
     cv2.drawContours(drawn_im, contours, -1, (0,255,0), 3)
 
+    ## Canny Edge Detector
+    low_threshold = 0
+    ratio = 3
+    kernel_size = 3
+    detected_edges = cv2.Canny(frame, low_threshold, low_threshold*ratio, kernel_size)
+    mask = detected_edges != 0
+    print(mask.shape)
+    dst = frame * (mask[:,:,None].astype(frame.dtype))
+    if i==1:
+        cv2.imshow('ass', cv2.hconcat([dst,frame]))
+    print(detected_edges.shape, mask.shape, dst.shape)
+
+    ## Color filtering
+    avg_color_per_row = np.average(frame, axis=0)
+    avg_color = np.average(avg_color_per_row, axis=0)
+    print(avg_color)
+
     # Image Merging
-    hcon1 = cv2.hconcat([images[i], cv2.cvtColor(saliencyMap, cv2.COLOR_GRAY2BGR), cv2.cvtColor(thresh1, cv2.COLOR_GRAY2BGR)])
-    hcon2 = cv2.hconcat([cv2.cvtColor(smoother, cv2.COLOR_GRAY2BGR),cv2.cvtColor(thresh2, cv2.COLOR_GRAY2BGR), drawn_im])
-    displ = cv2.vconcat([hcon1, hcon2])
+    #hcon1 = cv2.hconcat([images[i], cv2.cvtColor(saliencyMap, cv2.COLOR_GRAY2BGR), cv2.cvtColor(thresh1, cv2.COLOR_GRAY2BGR)])
+    #hcon2 = cv2.hconcat([cv2.cvtColor(smoother, cv2.COLOR_GRAY2BGR),cv2.cvtColor(thresh2, cv2.COLOR_GRAY2BGR), drawn_im])
+    #displ = cv2.vconcat([hcon1, hcon2])
 
     # Downsize concat image
-    print(displ.shape)
-    displ = cv2.resize(displ, (con_wi, con_hi))
+    #print(displ.shape)
+    #displ = cv2.resize(displ, (con_wi, con_hi))
 
     # Timings
     end_time = time.time()
@@ -91,7 +109,7 @@ for i in range(0,len(images)):
     im_name_conc = str ('concatd_' + onlyfiles[i])
     im_name_cont = str ('contured_' + onlyfiles[i])
     im_name_sali = str ('saliencyd_' + onlyfiles[i])
-    cv2.imwrite(os.path.join(conc_output , im_name_conc), displ)
+    #cv2.imwrite(os.path.join(conc_output , im_name_conc), displ)
     cv2.imwrite(os.path.join(cont_output, im_name_cont), drawn_im)
     cv2.imwrite(os.path.join(sali_output, im_name_sali), saliencyMap)
 
