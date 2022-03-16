@@ -18,7 +18,7 @@ con_wi = 1920
 
 ## Preprocessing variables
 blur_str = 0.015
-color_filter_lower_thresh = 100
+color_filter_lower_thresh = 130
 
 ## Preprocessing options
 downsize                = 1
@@ -76,12 +76,6 @@ for i in range(0,len(images)):
     for c in range(3):
         col_filtd[:,:,c] = col_filtd[:,:,c] / (1.0/255.0 + col_filtd[:,:,0] + col_filtd[:,:,1] + col_filtd[:,:,2]) # Normalize colors
     
-    # Normalize brightness
-    for c in range(3):
-        print("Max in channel c: ", np.max(col_filtd[:,:,c]))
-        col_filtd[:,:,c] = (col_filtd[:,:,c]/np.max(col_filtd[:,:,c]))
-        print("Max in channel c: ", np.max(col_filtd[:,:,c]))
-
     # Compute channel-wise averages
     avg_color_per_row = np.average(col_filtd, axis=0)
     avg_color = (np.average(avg_color_per_row, axis=0))#*255).astype(int)
@@ -91,6 +85,22 @@ for i in range(0,len(images)):
     color_deviancy = np.zeros(col_filtd.shape)
     for c in range(0,3):
         color_deviancy[:,:,c] = np.absolute(col_filtd[:,:,c] - avg_color[c])
+    #-- Some image info
+    """
+    avg_color_per_row = np.average(color_deviancy, axis=0)
+    avg_color = (np.average(avg_color_per_row, axis=0))
+    channel_maxes = np.array([np.max(color_deviancy[:,:,0]),np.max(color_deviancy[:,:,1]),np.max(color_deviancy[:,:,2])])
+    print("Color deviancy stats:\n   Average values: ", avg_color, "\n   Max values: ", channel_maxes)
+    
+    spectrum_canditates = np.argsort(channel_maxes)
+    print("   Sorted channel max indices: ", spectrum_canditates)
+    color_deviancy[:,:, spectrum_canditates[0]] = color_deviancy[:,:, spectrum_canditates[0]]/2.0
+    color_deviancy[:,:, spectrum_canditates[1]] = color_deviancy[:,:, spectrum_canditates[1]]/1.5
+    #--"""
+        # Normalize brightness
+    for c in range(3):
+        color_deviancy[:,:,c] = (color_deviancy[:,:,c]/np.max(color_deviancy[:,:,c]))
+
     color_deviancy = (color_deviancy*255).astype(np.ubyte)  # Convert result to image-readable format
 
     # Threshold values
@@ -109,6 +119,7 @@ for i in range(0,len(images)):
             contours[i] = np.squeeze(contours[i], axis=1)
             centroids[:,i] = np.mean(contours[i], axis=0)
     """
+    #threshed_detections = cv2.cvtColor(threshed_detections, cv2.COLOR_GRAY2BGR)
     
     
     ## Image post-processing
@@ -123,7 +134,7 @@ for i in range(0,len(images)):
     # Timings
     end_time = time.time()
     proc_time = round(end_time - start_time, 3)
-    print('Processing time: ', proc_time, ' [s]')
+    print('Processing time: ', proc_time, ' [s]\n')
 
     # Save outputs
     im_name_conc = str ('concatd_' + onlyfiles[i])
