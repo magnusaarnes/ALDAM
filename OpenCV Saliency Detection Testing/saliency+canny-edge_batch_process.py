@@ -18,15 +18,21 @@ con_hi = 1080
 con_wi = 1920
 
 ## Preprocessing variables
-blur_str = 0.01
+blur_str = 0.02
 color_filter_lower_thresh = 10
+# Canny Edge Detection
+low_threshold = 100
+ratio = 3
+kernel_size = 5
+CED_threshold_lower = 150
 
 ## Preprocessing options
-preblurring     = 0
-downsize        = 1
-color_filtering = 1
-denoise         = 0
-bilat_filtering = 1
+preblurring             = 0
+downsize                = 1
+color_filtering         = 1
+denoise                 = 0
+bilat_filtering         = 1
+canny_edge_detection    = 0
 
 # Data directory paths
 in_dataset  = os.path.join(os.getcwd(), 'Input_Dataset')
@@ -93,9 +99,7 @@ for i in range(0,len(images)):
         for c in range(0,3):
             color_deviancy[:,:,c] = np.absolute(col_filtd[:,:,c] - avg_color[c])
         
-        # 
-        color_deviancy = (color_deviancy*255).astype(np.ubyte)
-        col_filtd = (col_filtd*255).astype(np.ubyte)    # Convert result to image-readable format
+        color_deviancy = (color_deviancy*255).astype(np.ubyte)  # Convert result to image-readable format
 
     # Perform saliency
     saliency = cv2.saliency.StaticSaliencyFineGrained_create()
@@ -103,26 +107,29 @@ for i in range(0,len(images)):
     saliencyMap = (saliencyMap*255).astype("uint8")
 
     # Blur saliency map
-    sali_blur_rad = int (saliencyMap.shape[0]*0.01)
+    sali_blur_rad = int (saliencyMap.shape[0]*blur_str)
     processed_sali_map = saliencyMap.copy()
     processed_sali_map = cv2.blur(processed_sali_map,[sali_blur_rad, sali_blur_rad])
 
     # Canny Edge Detector
-    low_threshold = 100
-    ratio = 3
-    kernel_size = 5
-    detected_edges = cv2.Canny(processed_sali_map, low_threshold, low_threshold*ratio, kernel_size)
-    mask = detected_edges != 0
-    dst = cv2.cvtColor(processed_sali_map, cv2.COLOR_GRAY2BGR) * (mask[:,:,None].astype(frame.dtype))
+    if canny_edge_detection:
+        detected_edges = cv2.Canny(processed_sali_map, low_threshold, low_threshold*ratio, kernel_size)
+        mask = detected_edges != 0
+        dst = cv2.cvtColor(processed_sali_map, cv2.COLOR_GRAY2BGR) * (mask[:,:,None].astype(frame.dtype))
 
-    # Threshold
-    _disc, threshed_detections = cv2.threshold(dst,150,255,cv2.THRESH_BINARY)
+        # Threshold
+        _disc, threshed_detections = cv2.threshold(dst,CED_threshold_lower,255,cv2.THRESH_BINARY)
+    else:
+        _disc, threshed_detections = cv2.threshold(processed_sali_map,150,255,cv2.THRESH_BINARY)
     
     ## Image post-processing
+    saliencyMap = cv2.cvtColor(saliencyMap, cv2.COLOR_GRAY2BGR)
+    processed_sali_map = cv2.cvtColor(processed_sali_map, cv2.COLOR_GRAY2BGR)
+    threshed_detections = cv2.cvtColor(threshed_detections, cv2.COLOR_GRAY2BGR)
+
     # Image Merging
-    print(frame.dtype, preprocessed_frame.dtype, color_deviancy.dtype)
     hcon1 = cv2.hconcat([frame, preprocessed_frame, color_deviancy])
-    hcon2 = cv2.hconcat([cv2.cvtColor(saliencyMap, cv2.COLOR_GRAY2BGR), dst, threshed_detections])
+    hcon2 = cv2.hconcat([saliencyMap, processed_sali_map, threshed_detections])
     displ = cv2.vconcat([hcon1, hcon2])
 
     # Downsize concat image
