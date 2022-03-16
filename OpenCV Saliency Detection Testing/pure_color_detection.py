@@ -18,7 +18,7 @@ con_wi = 1920
 
 ## Preprocessing variables
 blur_str = 0.015
-color_filter_lower_thresh = 25
+color_filter_lower_thresh = 100
 
 ## Preprocessing options
 downsize                = 1
@@ -91,11 +91,12 @@ for i in range(0,len(images)):
     color_deviancy = np.zeros(col_filtd.shape)
     for c in range(0,3):
         color_deviancy[:,:,c] = np.absolute(col_filtd[:,:,c] - avg_color[c])
-        
     color_deviancy = (color_deviancy*255).astype(np.ubyte)  # Convert result to image-readable format
 
+    # Threshold values
     _disc, threshed_detections = cv2.threshold(color_deviancy,color_filter_lower_thresh,255,cv2.THRESH_BINARY)
     
+    # Perform morphology to remove isolated pixels
     threshed_detections = cv2.morphologyEx(threshed_detections, cv2.MORPH_OPEN, np.ones((5,5), np.uint8))
     
     ## Detection
