@@ -3,26 +3,48 @@ import cv2
 import time
 import os
 import sys
+import scipy.signal as signal
 
 print(sys.argv)
 
 ### Set variables
 
+
+### User functions
+def strideConv(arr, arr2, s):
+    return signal.convolve2d(arr, arr2[::-1, ::-1], mode='valid')[::s, ::s]
+
+def get_centroids(image):
+    contours, _ = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    centroids = np.zeros((2, len(contours)))
+    contours = list(contours)
+    for i in range(len(contours)):
+        contours[i] = np.squeeze(contours[i], axis=1)
+        centroids[:,i] = np.mean(contours[i], axis=0)
+
+
 ## Standard image resolutions
 # Downsize resolution
-hi = 720
-wi = 1270
+hi = 270
+wi = 480
 # Concat output resolution
 con_hi = 1080
 con_wi = 1920
 
 ## Preprocessing variables
 blur_str = 0.015
-color_filter_lower_thresh = 130
+color_filter_lower_thresh = 90
+
+# Bilateral filtering parameters // Attempts are made to make these image-size invariant
+neighborhood_gain   = 0.05
+sigmaColor_gain     = 0.2
+sigmaSpace_gain     = 0.2
+filter_neighborhood = int(neighborhood_gain*wi)
+sigmaColor          = int(sigmaColor_gain*wi)
+sigmaSpace          = int(sigmaSpace_gain*wi)
 
 ## Preprocessing options
 downsize                = 1
-color_filtering         = 1
 bilat_filtering         = 1
 
 # Data directory paths
@@ -42,6 +64,7 @@ print("Processing images in folder ", in_dataset, "(", len(onlyfiles), " objects
 if downsize:
     print("Images will be downsized to ", hi, "x",wi)
 print("\n")
+runtimes = np.zeros(len(onlyfiles))
 
 ## Main Loop
 # For each image in list, perform saliency stuff
@@ -61,48 +84,46 @@ for i in range(0,len(images)):
         frame = cv2.resize(frame,(wi, hi))
         preprocessed_frame = frame.copy()
     if bilat_filtering: # Bilateral Filter on input image
-        preprocessed_frame = cv2.bilateralFilter(preprocessed_frame, 13, 69,69)
+        preprocessed_frame = cv2.bilateralFilter(preprocessed_frame, filter_neighborhood, sigmaColor=sigmaColor,sigmaSpace=sigmaSpace)
 
     ## Color filtering
     col_filtd = preprocessed_frame.copy()
 
     # Blur image
-    col_filtd = cv2.blur(col_filtd, (blur_rad, blur_rad))
+    #col_filtd = cv2.blur(col_filtd, (blur_rad, blur_rad))
     
     #Convert to floating-point / normalize values
     col_filtd = col_filtd/255.0
-
     # Normalize colors
     for c in range(3):
         col_filtd[:,:,c] = col_filtd[:,:,c] / (1.0/255.0 + col_filtd[:,:,0] + col_filtd[:,:,1] + col_filtd[:,:,2]) # Normalize colors
     
     # Compute channel-wise averages
     avg_color_per_row = np.average(col_filtd, axis=0)
-    avg_color = (np.average(avg_color_per_row, axis=0))#*255).astype(int)
+    avg_color = np.average(avg_color_per_row, axis=0)
     print("Average normalized color values, BGR: ",avg_color)
 
     # For each channel, compute pixel-wise distance from average
     color_deviancy = np.zeros(col_filtd.shape)
     for c in range(0,3):
         color_deviancy[:,:,c] = np.absolute(col_filtd[:,:,c] - avg_color[c])
-    #-- Some image info
-    """
-    avg_color_per_row = np.average(color_deviancy, axis=0)
-    avg_color = (np.average(avg_color_per_row, axis=0))
-    channel_maxes = np.array([np.max(color_deviancy[:,:,0]),np.max(color_deviancy[:,:,1]),np.max(color_deviancy[:,:,2])])
-    print("Color deviancy stats:\n   Average values: ", avg_color, "\n   Max values: ", channel_maxes)
     
-    spectrum_canditates = np.argsort(channel_maxes)
-    print("   Sorted channel max indices: ", spectrum_canditates)
-    color_deviancy[:,:, spectrum_canditates[0]] = color_deviancy[:,:, spectrum_canditates[0]]/2.0
-    color_deviancy[:,:, spectrum_canditates[1]] = color_deviancy[:,:, spectrum_canditates[1]]/1.5
-    #--"""
-        # Normalize brightness
-    for c in range(3):
-        color_deviancy[:,:,c] = (color_deviancy[:,:,c]/np.max(color_deviancy[:,:,c]))
+    # Normalize brightness  ## NOTE! This is a bad idea! Replace with some smarter convolution asap!
+    #for c in range(3):
+    #    color_deviancy[:,:,c] = (color_deviancy[:,:,c]/np.max(color_deviancy[:,:,c]))
 
+    # Experiment more with this filter
+    #color_deviancy = cv2.pyrMeanShiftFiltering(color_deviancy, 4, 16, maxLevel=1)
+
+    # Experiment with convolution and difference from average
+    ##################
+    color_deviancy = np.sum(color_deviancy, axis=2)/3
+    color_deviancy = strideConv(color_deviancy, np.zeros((5,5))+0.11, 5)
+    color_deviancy = np.absolute(color_deviancy - np.average(color_deviancy))
+    color_deviancy = cv2.resize(color_deviancy,(wi, hi))
+    ##################
     color_deviancy = (color_deviancy*255).astype(np.ubyte)  # Convert result to image-readable format
-
+    color_deviancy = cv2.cvtColor(color_deviancy, cv2.COLOR_GRAY2BGR)       ########
     # Threshold values
     _disc, threshed_detections = cv2.threshold(color_deviancy,color_filter_lower_thresh,255,cv2.THRESH_BINARY)
     
@@ -110,15 +131,8 @@ for i in range(0,len(images)):
     threshed_detections = cv2.morphologyEx(threshed_detections, cv2.MORPH_OPEN, np.ones((5,5), np.uint8))
     
     ## Detection
-    """
-    def get_centroids(self):
-        contours, _ = cv2.findContours(self.image_processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        centroids = np.zeros((2, len(contours)))
-        contours = list(contours)
-        for i in range(len(self.contours)):
-            contours[i] = np.squeeze(contours[i], axis=1)
-            centroids[:,i] = np.mean(contours[i], axis=0)
-    """
+    # Contours
+    # Centroids
     #threshed_detections = cv2.cvtColor(threshed_detections, cv2.COLOR_GRAY2BGR)
     
     
@@ -131,17 +145,19 @@ for i in range(0,len(images)):
     # Downsize concat image
     displ = cv2.resize(displ, (con_wi, con_hi))
 
-    # Timings
-    end_time = time.time()
-    proc_time = round(end_time - start_time, 3)
-    print('Processing time: ', proc_time, ' [s]\n')
-
     # Save outputs
     im_name_conc = str ('concatd_' + onlyfiles[i])
     im_name_cont = str ('contured_' + onlyfiles[i])
     cv2.imwrite(os.path.join(conc_output , im_name_conc), displ)
     #cv2.imwrite(os.path.join(cont_output, im_name_cont), drawn_im)
 
+    # Timings
+    end_time = time.time()
+    proc_time = round(end_time - start_time, 3)
+    print('Processing time: ', proc_time, ' [s]\n')
+    runtimes[i] = proc_time
+
+print("Total processing time for",len(runtimes), "images:   ", np.sum(runtimes), "[s]\nAverage processing time:              ", round(np.average(runtimes),3),"[s]")
 
 ## Close webcam
 cv2.destroyAllWindows()
