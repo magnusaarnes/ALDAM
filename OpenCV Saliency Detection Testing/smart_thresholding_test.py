@@ -104,10 +104,8 @@ for i in range(0,len(images)):
     blurred_col_normd = cv2.blur(col_normd,(blur_rad,blur_rad))
 
     # For each channel, compute pixel-wise distance from blurred normals
-    color_deviancy = np.zeros(col_normd.shape)
-    for c in range(0,3):
-        color_deviancy[:,:,c] = np.absolute(col_normd[:,:,c] - blurred_col_normd[:,:,c])
-    #color_deviancy = np.absolute(col_normd - blurred_col_normd)
+    color_deviancy = np.absolute(col_normd - blurred_col_normd)
+    #color_deviancy = cv2.morphologyEx(color_deviancy, cv2.MORPH_CLOSE, np.ones((3,3), np.uint8))
 
     """
     # Selective brightness boosting
@@ -139,7 +137,7 @@ for i in range(0,len(images)):
     blurred_col_normd = (blurred_col_normd*255).astype(np.ubyte)        # Convert result to image-readable format
 
     # Threshold values
-    _disc, threshed_detections = cv2.threshold(cv2.cvtColor(cv2.blur(processed_deviancy,(blur_rad//2,blur_rad//2)), cv2.COLOR_BGR2GRAY),color_filter_lower_thresh,255,cv2.THRESH_BINARY)
+    _disc, threshed_detections = cv2.threshold(cv2.cvtColor(cv2.blur(processed_deviancy,(5,5)), cv2.COLOR_BGR2GRAY),color_filter_lower_thresh,255,cv2.THRESH_BINARY)
     
     # Perform morphology to remove isolated pixels
     threshed_detections = cv2.morphologyEx(threshed_detections, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
