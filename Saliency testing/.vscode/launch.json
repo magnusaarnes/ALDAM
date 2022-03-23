@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: testImages",
+            "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "testImages.py",
+            "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
         }
