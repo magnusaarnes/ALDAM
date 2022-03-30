@@ -29,5 +29,9 @@ if __name__ == "__main__":
         plt.figure()
         plt.imshow(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
         plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
+        
+        num_detections = centroids.shape[1]
+        if num_detections > 0:
+            
     
     plt.show()

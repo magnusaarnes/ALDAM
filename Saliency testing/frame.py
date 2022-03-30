@@ -139,21 +139,21 @@ class Frame:
         fx_pixels = self.K[0,0]
         fy_pixels = self.K[1,1]
         f = np.array([[fx_pixels], [fy_pixels]])
-        print("Focal lengths", f)
+        #print("Focal lengths", f)
         cx = self.K[0,2]
         cy = self.K[1,2]
         principal_point = np.array([[cx], [cy]])
-        print("Principal point:", principal_point)
+        #print("Principal point:", principal_point)
         n_points = self.centroids.shape[1]
         self.Xc = np.empty((3,n_points))
         
         # Camera coord Z is aproximately equal height aboe sea level
         Zc = self.height_above_sea
-        print("Height: ", Zc)
-        print("Centroids - CxCy:\n", (self.centroids - principal_point)[:,:4])
+        #print("Height: ", Zc)
+        #print("Centroids - CxCy:\n", (self.centroids - principal_point)[:,:4])
         self.Xc[:2,:] = Zc * (self.centroids - principal_point) / f
         self.Xc[2,:] = Zc
-        print(self.Xc[:,:4])
+        #print(self.Xc[:,:4])
         
         return self.Xc
     
