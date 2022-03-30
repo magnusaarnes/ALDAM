@@ -4,11 +4,9 @@ import time
 import os
 import sys
 
-from sympy import centroid
 print(sys.argv)
 
 ### Set variables
-
 
 ### User functions
 def get_centroids(image, mode=cv2.RETR_EXTERNAL, module=cv2.CHAIN_APPROX_NONE, radius=5, color=(0,0,255), thickness=2):
@@ -58,7 +56,6 @@ sigmaSpace_gain     = 0.14375
 filter_neighborhood = int(neighborhood_gain*wi)
 sigmaColor          = int(sigmaColor_gain*wi)
 sigmaSpace          = int(sigmaSpace_gain*wi)
-
 
 
 # Data directory paths
@@ -129,18 +126,14 @@ for i in range(0,len(images)):
     threshed_detections = cv2.morphologyEx(threshed_detections, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
     
     # Contours and centroids
-    ########
     threshed_detections = (threshed_detections*255).astype(np.ubyte)
-    contours, _hierarchy = cv2.findContours(threshed_detections, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
-    #(np.asarray(contours), "Contours ")
+
     centroids = get_centroids(threshed_detections)
     marked_frame = frame.copy()
-    diagnostix(centroids, "Centroid ")
-    print(centroids)
     if centroids.shape[0]>0 and centroids.shape[1]>0:
         for j in range(centroids.shape[1]):
             marked_image = cv2.circle(marked_frame, (centroids[0,j], centroids[1,j]), radius=9, color=(0,0,255), thickness=2)
-    ########
+
     ## Image post-processing
     if len(threshed_detections.shape)<3:
         threshed_detections = cv2.cvtColor(threshed_detections, cv2.COLOR_GRAY2BGR)
