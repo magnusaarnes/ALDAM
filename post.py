@@ -1,7 +1,7 @@
 import base64
 import requests
-import time
-img_path = "/home/magnus/Dropbox/Bilder/viktigikkeslett.jpg"
+img_path = "turtle.jpg"
+img_path = "cat.png"
 
 
 with open(img_path, "rb") as img:
