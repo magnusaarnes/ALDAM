@@ -1,6 +1,7 @@
 import qwiic_icm20948
 import time
 import sys
+import numpy as np
 
 def IMUGetData():
     print("Starting ICM20948")
@@ -11,7 +12,7 @@ def IMUGetData():
 
 
     # this does not work, don't know why
-    IMU.begin()    
+    # IMU.begin()    
     print("Data collection beginning")
     
     # IMU.swReset()
@@ -23,8 +24,9 @@ def IMUGetData():
     while True:
         if IMU.dataReady():
             IMU.getAgmt()
+            a_x, a_y, a_z = IMU_convert_accelerometer_data(IMU.axRaw, IMU.ayRaw, IMU.azRaw)
             print("----------------------")
-            print("ACC: {: 06d}, {: 06d}, {:06d}".format(IMU.axRaw, IMU.ayRaw, IMU.azRaw))
+            print("ACC: {:.3f}, {:.3f}, {:.3f}".format(a_x, a_y, a_z))
             print("GYR: {: 06d}, {: 06d}, {:06d}".format(IMU.gxRaw, IMU.gyRaw, IMU.gzRaw))
             print("MAG: {: 06d}, {: 06d}, {:06d}".format(IMU.mxRaw, IMU.myRaw, IMU.mzRaw))
 
@@ -32,6 +34,17 @@ def IMUGetData():
         else:
             print("Waitin for data")
             time.sleep(0.1)
+
+
+# takes in raw data from accelerometer and returns in 'g'
+# default resolution is +/- 2g 
+def IMU_convert_accelerometer_data(x, y, z, res=2):
+    # np. interp maps value from one range to another
+    x = np.interp(x, [-2**15, 2**15], [-res, res])
+    y = np.interp(y, [-2**15, 2**15], [-res, res])
+    z = np.interp(z, [-2**15, 2**15], [-res, res])
+    return x, y, z
+
 
 if __name__ == "__main__":
     try:
