@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import os
+import base64
+import requests
 from frame import Frame
     
 
@@ -11,6 +13,15 @@ if __name__ == "__main__":
     images = []
     for i in range(len(image_files)):
         images.append(cv2.imread( os.path.join(in_dataset,image_files[i])))
+        
+    with open('Images/image1.png', "rb") as img:
+        image_base64 = base64.b64encode(img.read())
+        data = { 'image' : image_base64 }
+        print(image_base64)
+        x = requests.post("https://aldam-saliency.herokuapp.com/upload_img/", data=data)
+        print(x)
+    
+    exit()
     
     frames = []
     for i in range(len(image_files)):
@@ -32,6 +43,10 @@ if __name__ == "__main__":
         
         num_detections = centroids.shape[1]
         if num_detections > 0:
-            
+            image_base64 = base64.b64encode(frames[i].image)
+            data = { 'image' : image_base64 }
+            print(image_base64)
+            #x = requests.post("http://localhost:8000/upload_img/", data=data)
+            x = requests.post("https://aldam-saliency.herokuapp.com/upload_img/", data=data)
     
     plt.show()
