@@ -1,27 +1,19 @@
 import cv2
 import PIL
 import numpy as np
+import picamera
 from matplotlib import pyplot as plt
 import time
-import os
 import base64
 import requests
 from frame import Frame
-    
 
-if __name__ == "__main__":
-    targetImage = PIL.Image.open("Images/test.png")
-    for key, value in targetImage.text.items():
-        print(key, ": ", value, sep="")
-    
-    in_dataset  = os.path.join(os.getcwd(), 'Images')
-    image_files = [ f for f in os.listdir(in_dataset) if os.path.isfile(os.path.join(in_dataset,f)) ]
-    images = []
-    for i in range(len(image_files)):
-        images.append(cv2.imread( os.path.join(in_dataset,image_files[i])))
-    
+
+def main():
     frames = []
-    for i in range(len(image_files)):
+    # For capture blablabla
+    while capture:
+        image = i
         ##################
         # Fetch INS data.
         # Not implemented in our project, but shoul be
@@ -31,7 +23,7 @@ if __name__ == "__main__":
         ##################
         
         frames.append(Frame(
-            image=images[i],
+            image=image,
             center_coord=[0.0, 0.0],
             height_above_sea=25,
             timestamp=time.time(),
@@ -77,5 +69,7 @@ if __name__ == "__main__":
                     x = requests.post("https://aldam-saliency.herokuapp.com/upload_img/", data=data)
                 except:
                     print(f"An error occured while trying to upload image {i+1}")
-    
-    plt.show()
+
+
+if __name__ == "__main__":
+    main()
