@@ -1,61 +1,7 @@
 import cv2
 import numpy as np
 from common import *
-
-
-def process_image(image, w, h):
-    # Downsize to new dimensions
-    w_new = 480
-    h_new = 270
-    # Tunable parameters
-    blur_str                    = 0.015
-    color_object_lower_thresh   = 0.3
-    booster_threshold           = 0.01
-    # Bilateral filtering parameters // Attempts are made to make these image-size invariant
-    neighborhood_gain   = 0.027
-    sigmaColor_gain     = 0.14375
-    sigmaSpace_gain     = 0.14375
-    filter_neighborhood = int(neighborhood_gain*w_new)
-    sigmaColor          = int(sigmaColor_gain*w_new)
-    sigmaSpace          = int(sigmaSpace_gain*w_new)
-    
-    processed_img = cv2.resize(image.copy(), (w_new, h_new))
-    # Bilateral filtering on input image
-    processed_img = cv2.bilateralFilter(processed_img, filter_neighborhood, sigmaColor=sigmaColor,sigmaSpace=sigmaSpace)
-    
-    # Color normalization
-    processed_img = processed_img / 255.0
-    for c in range(3):
-        processed_img[:,:,c] = processed_img[:,:,c] / (1.0/255.0 + processed_img[:,:,0] + processed_img[:,:,1] + processed_img[:,:,2]) # Normalize colors
-    
-    # Blurred version for autocomparison
-    blur_str = 0.02
-    blur_rad = int(w_new*blur_str)
-    blurred_processed_img = cv2.blur(processed_img,(blur_rad,blur_rad))
-    
-    # For each channel, compute pixel-wise distance from blurred normals
-    processed_img = np.absolute(processed_img - blurred_processed_img)
-    
-    # Merge channels into 1 grayscale image (yes this does look dumb but it actually runs faster than 'sum of channels / 3')
-    processed_img = cv2.cvtColor((processed_img*255).astype(np.ubyte), cv2.COLOR_BGR2GRAY)/255.0
-
-    # Boost pixels that stand out from their surroundings (compare with blurred self), over a certain threshold
-    processed_img_max   = np.max(processed_img)
-    processed_img_blur  = cv2.blur(processed_img, (blur_rad, blur_rad))
-    processed_img_diff  = np.absolute(processed_img - processed_img_blur) / processed_img_max
-    processed_img       = np.where(processed_img_diff < booster_threshold, processed_img, processed_img/processed_img_max)
-    
-    ## Thresholding and detection
-    # Threshold values  [Input is slightly blurred, not sure why/if this might be a good idea]
-    _disc, processed_img = cv2.threshold(cv2.blur(processed_img, (5,5)), color_object_lower_thresh, 1, cv2.THRESH_BINARY)
-    
-    # Perform morphology to remove isolated pixels
-    processed_img = cv2.morphologyEx(processed_img, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
-    
-    processed_img = (processed_img*255).astype(np.ubyte)
-    
-    # Return image in original size
-    return cv2.resize(processed_img, (w, h))
+from colorDeviancyDetection import detect_color_deviancies
 
 
 class Frame:
@@ -106,29 +52,17 @@ class Frame:
         self.timestamp = timestamp
         self.orientation = orientation
     
-    def process(self):
-        self.image_processed = process_image(self.image, self.width, self.height)
-        return self.image_processed
-    
     def find_centroids(self):
-        #contours, _ = cv2.findContours(self.image_processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        #self.centroids = np.zeros((2, len(contours)))
-        #self.contours = list(contours)
-        #for i in range(len(self.contours)):
-        #    self.contours[i] = np.squeeze(self.contours[i], axis=1)
-        #    self.centroids[:,i] = np.mean(self.contours[i], axis=0)
-        
-        #self.centroids = np.loadtxt('Positions/image1.txt').T
-        
-        assert hasattr(self, 'image_processed'), "Run `Frame.process() first`"
-        
-        contours, _ = cv2.findContours(self.image_processed, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
-        centroids = np.zeros((2, len(contours)))
-        contours = list(contours)
-        for i in range(len(contours)):
-            contours[i] = np.squeeze(contours[i], axis=1)
-            centroids[:,i] = np.mean(contours[i], axis=0)
-        self.centroids =  centroids.astype(float)
+        # Downsize to new dimensions
+        w_new = 480
+        h_new = 270
+        processed_img = cv2.resize(self.image.copy(), (w_new, h_new))
+        scale_x = self.image.shape[1] / w_new
+        scale_y = self.image.shape[0] / h_new
+        _, centroids, _, _ = detect_color_deviancies(processed_img)
+        self.centroids = centroids
+        self.centroids[0,:] = (self.centroids[0,:].astype(np.float64) * scale_x).astype(np.int32)
+        self.centroids[1,:] = (self.centroids[1,:].astype(np.float64) * scale_y).astype(np.int32)
         
         return self.centroids
     
@@ -139,21 +73,19 @@ class Frame:
         fx_pixels = self.K[0,0]
         fy_pixels = self.K[1,1]
         f = np.array([[fx_pixels], [fy_pixels]])
-        #print("Focal lengths", f)
+        
         cx = self.K[0,2]
         cy = self.K[1,2]
         principal_point = np.array([[cx], [cy]])
-        #print("Principal point:", principal_point)
+        
         n_points = self.centroids.shape[1]
         self.Xc = np.empty((3,n_points))
         
         # Camera coord Z is aproximately equal height aboe sea level
         Zc = self.height_above_sea
-        #print("Height: ", Zc)
-        #print("Centroids - CxCy:\n", (self.centroids - principal_point)[:,:4])
+        
         self.Xc[:2,:] = Zc * (self.centroids - principal_point) / f
         self.Xc[2,:] = Zc
-        #print(self.Xc[:,:4])
         
         return self.Xc
     
@@ -165,7 +97,10 @@ class Frame:
         T_c_to_w = t_c_to_w @ R_c_to_w
         
         n_points = self.Xc.shape[1]
-        Xc_tilde = np.column_stack((np.vstack((self.Xc, np.ones(n_points))), np.array([0,0,0,1])))
+        Xc_tilde = np.vstack((self.Xc, np.ones(n_points)))
+        add_camera_pos = False
+        if add_camera_pos:
+            Xc_tilde = np.column_stack((Xc_tilde, np.array([0,0,0,1])))
         self.Xw = (T_c_to_w @ Xc_tilde)[:3,:]
         
         return self.Xw
