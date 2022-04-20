@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 
-import color_deviancy_detection_and_saliency_test as cdd
+import color_deviancy_detection as cdd
 
 ## Standard image resolutions
 # Downsize resolution
