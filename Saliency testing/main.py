@@ -6,7 +6,7 @@ import picamera
 from picamera.array import PiRGBArray
 #from matplotlib import pyplot as plt
 import time
-import base64
+from Image_encoding.base64 import encode_image
 import requests
 import threading
 from frame import Frame
@@ -85,7 +85,7 @@ def main():
 
 
 def thread_upload_image(filename, metadata):
-    img_str = base64.b64encode(filename)
+    img_str = encode_image(filename)
     data = {'image' : img_str, 'metadata': metadata}
     try:
         r = requests.post(url=url, data=data)
