@@ -3,6 +3,7 @@ import PIL
 import numpy as np
 import json
 import picamera
+from picamera.array import PiRGBArray
 #from matplotlib import pyplot as plt
 import time
 import base64
@@ -14,7 +15,7 @@ url = "https://aldam-saliency.herokuapp.com/upload_img/"
 cam = picamera.PiCamera()
 cam.resolution = (1920, 1080)
 cam.framerate = 10
-raw_capture = picamera.array.PiRGBArray(cam, size=(1920, 1080))
+raw_capture = PiRGBArray(cam, size=(1920, 1080))
 
 #allow camera to wake up
 time.sleep(0.1)
