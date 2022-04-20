@@ -10,11 +10,11 @@ from frame import Frame
     
 
 if __name__ == "__main__":
-    targetImage = PIL.Image.open("Images/test.png")
+    targetImage = PIL.Image.open("Test_images/test.png")
     for key, value in targetImage.text.items():
         print(key, ": ", value, sep="")
     
-    in_dataset  = os.path.join(os.getcwd(), 'Images')
+    in_dataset  = os.path.join(os.getcwd(), 'Test_images')
     image_files = [ f for f in os.listdir(in_dataset) if os.path.isfile(os.path.join(in_dataset,f)) ]
     images = []
     for i in range(len(image_files)):
