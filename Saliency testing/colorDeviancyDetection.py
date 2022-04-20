@@ -21,11 +21,16 @@ def draw_centroids(centroids, image):
     return marked_image
 
 def spectral_autodifference(image, blur_strength):
-    # Blur normalized
-    blurred = cv2.blur(image, (int(image.shape[0]*blur_strength),int(image.shape[0]*blur_strength)))
-    
+    depth=3
+    color_deviancy = image.copy()
+    blurs = [image.dtype]*depth
+    for d in range(depth):
+        # Blur normalized
+        blur_rad = int((1 + d)*image.shape[0]*blur_strength)
+        blurs[d] = cv2.blur(image, (blur_rad,blur_rad))
+   
     # For each channel, compute pixel-wise distance from blurred normals
-    color_deviancy = np.absolute(image - blurred)
+    color_deviancy = np.absolute(color_deviancy - 0.6*blurs[0] - 0.3*blurs[1] - 0.1*blurs[2])
     return color_deviancy
 
 def detect_color_deviancies(frame, blur_strengths=(0.04,0.01), color_object_lower_thresh=0.3, booster_threshold=0.01, bilateral_filter_gains=(0.027,0.14375,0.14375), threshold_preblur_rad=(5,5), silent=True):

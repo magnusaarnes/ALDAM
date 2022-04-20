@@ -26,18 +26,17 @@ def main():
     # up to 10 different "temporary" images
     i = 0
     for image_frame in cam.capture_continuous(raw_capture, format="bgr", use_video_port=True):
-        start = time.time()
-        
         image = image_frame.array
         
         ##################
-        # Fetch INS data.
-        # Not implemented in our project, but shoul be
+        # --- Fetch INS data ---
+        # Not implemented in our project, but should be
         # fetched either from drone which has some INS,
         # or an INS should be implemented on the RPi as
         # well, in order to get pose of camera.
         ##################
         
+        # Create a frame object with the current image-frame and some metadata
         frames.append(Frame(
             image=image,
             center_coord=[0.0, 0.0],
