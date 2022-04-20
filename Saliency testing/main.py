@@ -3,7 +3,7 @@ import PIL
 import numpy as np
 import json
 import picamera
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 import time
 import base64
 import requests
