@@ -49,28 +49,20 @@ def main():
         centroids = frames[i].find_centroids()
         Xc = frames[i].find_camera_coords()
         Xw = frames[i].find_world_coords()
+        metadata = frames[i].get_metadata()
         
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        ax.scatter(Xw[0,:], Xw[1,:], Xw[2,:], marker='x')
-        ax.set_xlabel('X Label')
-        ax.set_ylabel('Y Label')
-        ax.set_zlabel('Z Label')
-        plt.figure()
-        plt.imshow(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
-        plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
+        #fig = plt.figure()
+        #ax = fig.add_subplot(projection='3d')
+        #ax.scatter(Xw[0,:], Xw[1,:], Xw[2,:], marker='x')
+        #ax.set_xlabel('X Label')
+        #ax.set_ylabel('Y Label')
+        #ax.set_zlabel('Z Label')
+        #plt.figure()
+        #plt.imshow(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
+        #plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
         
         # Create PIL image obj in order to add metadata
         pil_image = PIL.Image.fromarray(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
-        
-        # Add metadata
-        metadata = dict()
-        metadata["Time"]        = str(frames[i].timestamp)
-        metadata["Pos"]         = str(frames[i].center_coord)
-        metadata["Height"]      = str(frames[i].height_above_sea)
-        metadata["Ori"]         = str(frames[i].orientation)
-        metadata["Centroids"]   = np.array2string(frames[i].centroids)
-        metadata["WorldCoords"] = np.array2string(frames[i].Xw)
         
         # Temporarily save img so a thread can pick it up and upload it
         pil_image.save(f'temp{i}.png')

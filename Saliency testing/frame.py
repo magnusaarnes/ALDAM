@@ -104,4 +104,15 @@ class Frame:
         self.Xw = (T_c_to_w @ Xc_tilde)[:3,:]
         
         return self.Xw
+    
+    def get_metadata(self):
+        assert hasattr(self, 'Xw'), "Run `Frame.find_world_coords() first`"
+        
+        self.metadata = dict()
+        self.metadata["Time"]        = str(self.timestamp)
+        self.metadata["Pos"]         = str(self.center_coord)
+        self.metadata["Height"]      = str(self.height_above_sea)
+        self.metadata["Ori"]         = str(self.orientation)
+        self.metadata["Centroids"]   = np.array2string(self.centroids)
+        self.metadata["WorldCoords"] = np.array2string(self.Xw)
         
