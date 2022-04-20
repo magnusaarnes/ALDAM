@@ -1,5 +1,5 @@
 import cv2
-import PIL
+#import PIL
 import numpy as np
 import json
 import picamera
@@ -63,10 +63,11 @@ def main():
         #plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
         
         # Create PIL image obj in order to add metadata
-        pil_image = PIL.Image.fromarray(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
+        cv2.imwrite(f'temp{i}.png', frames[i].image)
+        #pil_image = PIL.Image.fromarray(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
         
         # Temporarily save img so a thread can pick it up and upload it
-        pil_image.save(f'temp{i}.png')
+        #pil_image.save(f'temp{i}.png')
         
         # Check that there are any detections
         num_detections = centroids.shape[1]
