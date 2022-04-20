@@ -18,7 +18,7 @@ time.sleep(0.1)
 
 def thread_upload_image(filename, metadata):
     img_str = encode_image(filename)
-    data = {'image' : img_str, 'metadata', metadata}
+    data = {'image' : img_str, 'metadata': metadata}
     r = requests.post(url=url, data=data)
     #print("Upload done")
 
