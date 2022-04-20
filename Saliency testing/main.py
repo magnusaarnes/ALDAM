@@ -30,8 +30,6 @@ def main():
         
         image = image_frame.array
         
-        print(f"It took {round(time.time() - start, 3)}s to capture image")
-        
         ##################
         # Fetch INS data.
         # Not implemented in our project, but shoul be
@@ -52,46 +50,35 @@ def main():
         Xw = frames[i].find_world_coords()
         metadata = frames[i].get_metadata()
         
-        #fig = plt.figure()
-        #ax = fig.add_subplot(projection='3d')
-        #ax.scatter(Xw[0,:], Xw[1,:], Xw[2,:], marker='x')
-        #ax.set_xlabel('X Label')
-        #ax.set_ylabel('Y Label')
-        #ax.set_zlabel('Z Label')
-        #plt.figure()
-        #plt.imshow(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
-        #plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
-        
-        # Create PIL image obj in order to add metadata
-        cv2.imwrite(f'temp{i}.png', frames[i].image)
-        #pil_image = PIL.Image.fromarray(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
-        
-        # Temporarily save img so a thread can pick it up and upload it
-        #pil_image.save(f'temp{i}.png')
-        
+        send_marked_image = True
+        if send_marked_image:
+            cv2.imwrite(f'Temporary_images/temp{i}.png', frames[i].marked_image)
+        else:
+            cv2.imwrite(f'Temporary_images/temp{i}.png', frames[i].image)
+
         # Check that there are any detections
         num_detections = centroids.shape[1]
         if num_detections > 0:
-            t = threading.Thread(target=thread_upload_image, args=(f'temp{i}.png', json.dumps(metadata)))
+            print("Detections - Sending things :(")
+            t = threading.Thread(target=thread_upload_image, args=(f'Temporary_images/temp{i}.png', json.dumps(metadata)))
             t.start()
+        else:
+            print("No detections - no sending :)")
 
         if i % 10 == 0: i = 0
         i += 1
         
         # Clear frame buffer
         raw_capture.truncate(0)
-        
-        print(f"It took {round(time.time() - start, 3)}s to process image")
 
 
 def thread_upload_image(filename, metadata):
     img_str = encode_image(filename)
-    data = {'image' : img_str, 'metadata': metadata}
+    data = {'image' : img_str, 'metadata': str(metadata)}
     try:
         r = requests.post(url=url, data=data)
     except:
         print("An error occured while trying to upload an image")
-        
 
 
 if __name__ == "__main__":

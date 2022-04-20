@@ -59,7 +59,8 @@ class Frame:
         processed_img = cv2.resize(self.image.copy(), (w_new, h_new))
         scale_x = self.image.shape[1] / w_new
         scale_y = self.image.shape[0] / h_new
-        _, centroids, _, _ = detect_color_deviancies(processed_img)
+        marked_image, centroids, _, _ = detect_color_deviancies(processed_img)
+        self.marked_image = marked_image
         self.centroids = centroids
         self.centroids[0,:] = (self.centroids[0,:].astype(np.float64) * scale_x).astype(np.int32)
         self.centroids[1,:] = (self.centroids[1,:].astype(np.float64) * scale_y).astype(np.int32)
@@ -115,4 +116,6 @@ class Frame:
         self.metadata["Ori"]         = str(self.orientation)
         self.metadata["Centroids"]   = np.array2string(self.centroids)
         self.metadata["WorldCoords"] = np.array2string(self.Xw)
+
+        return self.metadata
         
