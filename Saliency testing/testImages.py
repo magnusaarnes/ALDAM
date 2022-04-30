@@ -1,3 +1,4 @@
+from turtle import color
 import cv2
 import PIL
 import numpy as np
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     for i in range(len(image_files)):
         images.append(cv2.imread( os.path.join(in_dataset,image_files[i])))
     
+    #image_files = ['Test_images/test.png']
     frames = []
     for i in range(len(image_files)):
         ##################
@@ -32,10 +34,10 @@ if __name__ == "__main__":
         
         frames.append(Frame(
             image=images[i],
-            center_coord=[0.0, 0.0],
+            center_coord=[1.0, 3.0],
             height_above_sea=25,
             timestamp=time.time(),
-            orientation=[0, 0, 0]))
+            orientation=[0, 0, 45]))
         
         centroids = frames[i].find_centroids()
         Xc = frames[i].find_camera_coords()
@@ -43,10 +45,16 @@ if __name__ == "__main__":
         
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
-        ax.scatter(Xw[0,:], Xw[1,:], Xw[2,:], marker='x')
-        ax.set_xlabel('X Label')
-        ax.set_ylabel('Y Label')
-        ax.set_zlabel('Z Label')
+        ax.scatter(Xw[0,:-1], Xw[1,:-1], Xw[2,:-1], marker='x', color='r')
+        ax.scatter(Xw[0,-1], Xw[1,-1], Xw[2,-1], marker='o', color='b')
+        ax.set_xlabel('North')
+        ax.set_ylabel('East')
+        ax.set_zlabel('Down')
+        ax.set_xlim( -12, 10)
+        ax.set_ylim( -8, 12)
+        ax.set_zlim(-26,  2)
+        ax.invert_zaxis()
+        ax.invert_yaxis()
         plt.figure()
         plt.imshow(cv2.cvtColor(frames[i].image, cv2.COLOR_BGR2RGB))
         plt.scatter(centroids[0,:], centroids[1,:], c="r", marker="x")
@@ -69,12 +77,15 @@ if __name__ == "__main__":
         
         # Check that there are any detections
         num_detections = centroids.shape[1]
-        if num_detections > 0:
+        print("Num det:", num_detections)
+        if num_detections > 0 or True:
             with open('temp.png', "rb") as img:
                 image_base64 = base64.b64encode(img.read())
-                data = { 'image' : image_base64 }
+                metadata = "Test"
+                data = {'image' : image_base64, 'metadata': str(metadata)}
                 try:
                     x = requests.post("https://aldam-saliency.herokuapp.com/upload_img/", data=data)
+                    print("Uploaded shit")
                 except:
                     print(f"An error occured while trying to upload image {i+1}")
     

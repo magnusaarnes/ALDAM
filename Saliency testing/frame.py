@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from common import *
 from colorDeviancyDetection import detect_color_deviancies
-
+from scipy.spatial.transform import Rotation as R
 
 class Frame:
     K = np.loadtxt('config/intrinsic_params.txt')
@@ -29,7 +29,7 @@ class Frame:
         
         Parameters:
         - image (np.ndarray):         The image.
-        - center_coord (list[float]): Longitude and latidute of where image is taken.
+        - center_coord (list[float]): X and Y of where image is taken in NED frame.
         - height_above_sea: (float):  Height above sea level of where image is taken.
         - timestamp (float):          Unix timestamp of when image is taken.
         - orientation (float):        Orientation of camera in terms of [roll, pitch, yaw].
@@ -75,8 +75,8 @@ class Frame:
         fy_pixels = self.K[1,1]
         f = np.array([[fx_pixels], [fy_pixels]])
         
-        cx = self.K[0,2]
-        cy = self.K[1,2]
+        cx = self.K[0,2] / 1.8
+        cy = self.K[1,2] / 1.8
         principal_point = np.array([[cx], [cy]])
         
         n_points = self.centroids.shape[1]
@@ -92,14 +92,20 @@ class Frame:
     
     def find_world_coords(self):
         assert hasattr(self, 'Xc'), "Run `Frame.find_camera_coords() first`"
-        t_c_to_w = translate(150, 25, -self.height_above_sea)
-        R_c_to_w = rotate_z(np.deg2rad(90 + 90))
+        t_c_to_w = translate(self.center_coord[0], self.center_coord[1], -self.height_above_sea)
+        R_c_to_w = np.eye(4)
+        roll, pitch, yaw = self.orientation
+        rotation = R.from_euler('xyz', [roll, pitch, yaw], degrees=True)
+        R_c_to_w[:3,:3] = rotation.as_matrix()
         
         T_c_to_w = t_c_to_w @ R_c_to_w
         
         n_points = self.Xc.shape[1]
         Xc_tilde = np.vstack((self.Xc, np.ones(n_points)))
-        add_camera_pos = False
+        # Flip x and y in order to get NED frame (x=north, y=east, z=down). And we want north "up" instead of y
+        Xc_tilde[[0, 1]] = Xc_tilde[[1, 0]]
+        Xc_tilde[0] = -Xc_tilde[0]
+        add_camera_pos = True
         if add_camera_pos:
             Xc_tilde = np.column_stack((Xc_tilde, np.array([0,0,0,1])))
         self.Xw = (T_c_to_w @ Xc_tilde)[:3,:]
